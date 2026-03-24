@@ -1,0 +1,41 @@
+@import url('https://fonts.googleapis.com/css2?family=Alexandria:wght@100..900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  /* Brand palette */
+  --color-primary: #FF6B57; /* Coral */
+  --color-secondary: #274F4A; /* Dark Teal */
+  --color-accent: #4FA98C; /* Soft Teal */
+
+  --color-background: #F9FAFB;
+  --color-text: #0F172A;
+
+  --color-border: #E2E8F0;
+
+  --radius: 4px;
+}
+
+@layer base {
+
+  *,
+  ::before,
+  ::after {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-text);
+    font-family: "Alexandria", system-ui, sans-serif !important;
+    font-optical-sizing: auto;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@media (min-width: 48rem) {
+  .md\:text-7xl {
+      font-size: var(--text-7xl);
+      line-height: 1.5 !important;
+  }
+}
