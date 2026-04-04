@@ -5,8 +5,9 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle, XCircle, Loader2, Copy } from "lucide-react";
 import { toast } from "sonner";
+import { getPublicApiUrl } from "@/lib/publicApiUrl";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+const API_URL = getPublicApiUrl();
 
 type VerifyResult = {
     success: boolean;

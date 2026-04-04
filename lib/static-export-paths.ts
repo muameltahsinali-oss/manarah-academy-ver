@@ -3,11 +3,10 @@
  * مع SSR على Vercel لا تُستخدم لإجبار `generateStaticParams` — المسارات ديناميكية.
  */
 
-const DEFAULT_API = "http://127.0.0.1:8000/api";
+import { getPublicApiUrl } from "./publicApiUrl";
 
 function apiBase(): string {
-    const raw = process.env.NEXT_PUBLIC_API_URL?.trim().replace(/\/$/, "");
-    return raw || DEFAULT_API;
+    return getPublicApiUrl();
 }
 
 type PaginatedCourses = {

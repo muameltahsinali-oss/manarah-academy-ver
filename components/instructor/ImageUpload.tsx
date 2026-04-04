@@ -7,8 +7,9 @@ import Cookies from "js-cookie";
 import { toast } from "sonner";
 import Image from "next/image";
 import { isBackendImageUrl } from "@/lib/utils/image";
+import { getPublicApiUrl } from "@/lib/publicApiUrl";
 
-const API_BASE = typeof window !== "undefined" ? (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api") : "";
+const API_BASE = typeof window !== "undefined" ? getPublicApiUrl() : "";
 
 function buildStorageUrl(path: string): string {
     const origin = API_BASE.replace(/\/api\/?$/, "");
