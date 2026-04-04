@@ -1,4 +1,4 @@
-import { ProfileClient } from "./ProfileClient";
+import { ProfileClient } from "@/components/profile/ProfileClient";
 
 export const metadata = {
     title: "الملف الشخصي - منارة اكاديمي",

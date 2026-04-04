@@ -19,8 +19,9 @@ export function PublishStep({ isSubmitting, courseId }: { isSubmitting: boolean,
     const publishCourse = usePublishCourse();
     const router = useRouter();
 
-    const isReady = readyRes?.is_ready || false;
-    const issues = readyRes?.issues || [];
+    // `lib/api.ts` إرجاع response.data بالكامل (success/message/data/meta)، لذا الحقول تكون داخل `data`
+    const isReady = readyRes?.data?.is_ready ?? false;
+    const issues = readyRes?.data?.issues ?? [];
 
     const handlePublish = async () => {
         if (!courseId) return;
@@ -29,12 +30,12 @@ export function PublishStep({ isSubmitting, courseId }: { isSubmitting: boolean,
             toast.success("تم نشر الدورة بنجاح! الدورة الآن متاحة للطلاب.");
             router.push('/instructor/courses');
         } catch (error: any) {
-            const data = error?.response?.data;
-            const issues = data?.issues;
-            if (Array.isArray(issues) && issues.length > 0) {
-                issues.forEach((msg: string) => toast.error(msg));
+            // `lib/api.ts` normalizes errors into `error.errors` (على شكل object)
+            const backendIssues = error?.errors?.issues;
+            if (Array.isArray(backendIssues) && backendIssues.length > 0) {
+                backendIssues.forEach((msg: string) => toast.error(msg));
             } else {
-                toast.error(data?.message || "فشل نشر الدورة");
+                toast.error(error?.message || "فشل نشر الدورة");
             }
         }
     };
@@ -57,7 +58,14 @@ export function PublishStep({ isSubmitting, courseId }: { isSubmitting: boolean,
                             </h3>
                             <button
                                 type="button"
-                                onClick={() => refetch()}
+                                onClick={async () => {
+                                    try {
+                                        await refetch();
+                                        toast.success("تم تحديث حالة جاهزية الدورة");
+                                    } catch (e: any) {
+                                        toast.error(e?.message || "فشل تحديث حالة الجاهزية");
+                                    }
+                                }}
                                 className="text-[10px] font-bold text-primary hover:underline"
                             >
                                 تحديث الحالة

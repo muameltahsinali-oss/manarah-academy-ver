@@ -1,47 +1,32 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/hooks/useAuth";
-import { HeroSection } from "@/components/landing/HeroSection";
-import { TrustSection } from "@/components/landing/TrustSection";
-import { FeaturedCoursesSection } from "@/components/landing/FeaturedCoursesSection";
-import { FeaturesSection } from "@/components/landing/FeaturesSection";
-import { ShowcaseTilesSection } from "@/components/landing/ShowcaseTilesSection";
-import { HowItWorksSection } from "@/components/landing/HowItWorksSection";
-import { FinalCTASection } from "@/components/landing/FinalCTASection";
-import { PlayerDashboardShowcase } from "@/components/landing/PlayerDashboardShowcase";
-import { HomeHeroSection } from "@/components/landing/HomeHeroSection";
-import { HomeContinueLearning } from "@/components/landing/HomeContinueLearning";
-import { HomeLearningPathsSection } from "@/components/landing/HomeLearningPathsSection";
-import { HomeFinalCTA } from "@/components/landing/HomeFinalCTA";
+import { GuestMarketingHome } from "@/components/discovery/GuestMarketingHome";
+import { LandingHeroLoadingShell } from "@/components/landing/LandingHeroLoadingShell";
+import { HomeSessionDegraded } from "@/components/discovery/HomeSessionDegraded";
 
 export default function Home() {
-  const { isAuthenticated } = useAuth();
+    const [mounted, setMounted] = useState(false);
+    const { authSessionStatus, refetchSession, isFetchingSession } = useAuth();
 
-  // ضيف: نفس نسخة الـ landing الترويجية القديمة
-  if (!isAuthenticated) {
-    return (
-      <div className="flex flex-col min-h-screen">
-        <HeroSection />
-        <TrustSection />
-        <PlayerDashboardShowcase />
-        <FeaturedCoursesSection />
-        <FeaturesSection />
-        <ShowcaseTilesSection />
-        <HowItWorksSection />
-        <FinalCTASection />
-      </div>
-    );
-  }
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- ضروري لمنع وميض محتوى غير متسق
+        setMounted(true);
+    }, []);
 
-  // مسجّل دخول: تجربة التعلم (دورات، استمر في التعلم، مسارات، أقسام)
-  return (
-    <div className="flex flex-col min-h-screen">
-      <HomeHeroSection />
-      <HomeContinueLearning />
-      <FeaturedCoursesSection />
-      <HomeLearningPathsSection />
-      <HowItWorksSection />
-      <HomeFinalCTA />
-    </div>
-  );
+    if (!mounted || authSessionStatus === "loading") {
+        return <LandingHeroLoadingShell />;
+    }
+
+    if (authSessionStatus === "degraded") {
+        return (
+            <HomeSessionDegraded
+                onRetry={() => void refetchSession()}
+                isRetrying={isFetchingSession}
+            />
+        );
+    }
+
+    return <GuestMarketingHome />;
 }

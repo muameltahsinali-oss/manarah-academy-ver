@@ -61,7 +61,11 @@ apiClient.interceptors.response.use(
             // Avoid noisy console errors for expected 404s (e.g. مورد غير موجود) in development.
             // Still surface real server/client issues like 5xx and 4xx other than 401/404.
             if (process.env.NODE_ENV === 'development' && status && status !== 401 && status !== 404) {
-                console.error('[API Error]', status, errorMessage, parsedData ?? error.message);
+                const method = (error.config?.method || '').toUpperCase();
+                const url = error.config?.baseURL
+                    ? `${error.config.baseURL}${error.config.url || ''}`
+                    : error.config?.url;
+                console.error('[API Error]', status, method, url, errorMessage, parsedData ?? error.message);
             }
 
             const returnedError = new Error(errorMessage);

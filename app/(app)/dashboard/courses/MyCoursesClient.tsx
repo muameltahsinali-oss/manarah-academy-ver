@@ -17,7 +17,8 @@ export interface Course {
     progress?: number;
 }
 import { useStudentCourses } from "@/lib/hooks/useDashboard";
-import { Loader2 } from "lucide-react";
+import { CourseCardSkeleton } from "@/components/ui/CourseCardSkeleton";
+import { CourseProgressBar } from "@/components/engagement/CourseProgressBar";
 
 export function MyCoursesClient() {
     const { data: res, isLoading } = useStudentCourses();
@@ -27,8 +28,14 @@ export function MyCoursesClient() {
 
     if (isLoading) {
         return (
-            <div className="flex justify-center items-center h-64">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <div className="flex w-full max-w-6xl flex-col gap-4 py-4 md:py-8" aria-busy aria-label="جاري تحميل الدورات">
+                <div className="h-9 w-48 animate-pulse rounded bg-border/45" />
+                <div className="h-12 w-full max-w-md animate-pulse rounded-[4px] bg-border/35" />
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                    {[0, 1, 2].map((i) => (
+                        <CourseCardSkeleton key={i} delay={i * 0.06} />
+                    ))}
+                </div>
             </div>
         );
     }
@@ -211,16 +218,12 @@ function CourseCard({ course }: { course: Course }) {
                     </span>
                 </div>
                 <div className="mb-4 md:mb-6">
-                    <div className="flex justify-between items-center mb-1.5 md:mb-2">
-                        <span className="text-xs font-bold text-text/60">التقدم</span>
-                        <span className="text-xs font-mono font-bold text-primary">{progress}%</span>
-                    </div>
-                    <div className="w-full h-1.5 bg-border/40 rounded-full overflow-hidden">
-                        <div
-                            className="h-full bg-primary transition-all duration-1000 ease-out"
-                            style={{ width: `${progress}%` }}
-                        />
-                    </div>
+                    <CourseProgressBar
+                        value={progress}
+                        size="sm"
+                        showMilestones={!isCompleted}
+                        showEncouragement={!isCompleted && course.status === "in-progress"}
+                    />
                 </div>
                 <Link
                     href={`/learn/${course.slug}`}

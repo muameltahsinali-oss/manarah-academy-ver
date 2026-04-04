@@ -9,7 +9,10 @@ export function ContinueLearningSection() {
     const { data: res, isLoading } = useStudentCourses();
     const courses = res?.data || [];
 
-    const inProgress = courses.filter((course: any) => !course.is_completed);
+    const inProgress = courses.filter(
+        (course: { status?: string; progress?: number }) =>
+            course.status !== "completed" && (course.progress ?? 0) < 100
+    );
     const displayCourses = (inProgress.length > 0 ? inProgress : courses).slice(0, 3);
 
     if (isLoading) {

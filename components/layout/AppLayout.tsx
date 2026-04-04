@@ -1,19 +1,23 @@
 "use client";
 
 import { AppSidebar } from "./AppSidebar";
-import { useAuth } from "@/lib/hooks/useAuth";
 import { usePathname } from "next/navigation";
 import { MobileBottomNav } from "./MobileBottomNav";
+import { Header } from "./Header";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
-    const { user, isLoading } = useAuth();
     const pathname = usePathname();
 
     // If it's an admin or instructor route, we let the sub-layouts handle their own structure
     const isPortalRoute = pathname.startsWith('/instructor') || pathname.startsWith('/admin');
 
     if (isPortalRoute) {
-        return <>{children}</>;
+        return (
+            <>
+                {children}
+                <MobileBottomNav />
+            </>
+        );
     }
 
     return (
@@ -25,6 +29,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
             {/* Main Content */}
             <div className="flex-1 flex flex-col min-w-0 md:mr-64 lg:mr-72 transition-all w-full overflow-x-hidden">
+                {/* Desktop Header */}
+                <Header variant="auto" />
+
                 {/* Mobile Header: شريط ثابت مع safe area */}
                 <header className="md:hidden h-14 min-h-[3.5rem] pt-[env(safe-area-inset-top)] border-b border-border/80 flex items-center justify-between px-4 bg-background sticky top-0 z-30">
                     <div className="flex items-center gap-2 min-w-0">

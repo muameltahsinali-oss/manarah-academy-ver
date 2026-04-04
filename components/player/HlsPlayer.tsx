@@ -3,6 +3,36 @@
 import { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
 
+/** مسافة: تشغيل/إيقاف — فقط عندما لا يكون التركيز في حقل إدخال */
+function useVideoKeyboardToggle(videoRef: React.RefObject<HTMLVideoElement | null>, enabled: boolean) {
+    useEffect(() => {
+        if (!enabled) return;
+        const onKey = (e: KeyboardEvent) => {
+            if (e.code !== "Space") return;
+            const el = e.target as HTMLElement | null;
+            if (
+                el &&
+                (el.tagName === "INPUT" ||
+                    el.tagName === "TEXTAREA" ||
+                    el.tagName === "SELECT" ||
+                    (el as HTMLElement).isContentEditable)
+            ) {
+                return;
+            }
+            const v = videoRef.current;
+            if (!v) return;
+            e.preventDefault();
+            if (v.paused) {
+                void v.play();
+            } else {
+                v.pause();
+            }
+        };
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, [enabled, videoRef]);
+}
+
 interface HlsPlayerProps {
     url: string;
     onError?: (message: string) => void;
@@ -19,6 +49,8 @@ export function HlsPlayer({ url, onError, videoRef: externalRef }: HlsPlayerProp
     useEffect(() => {
         onErrorRef.current = onError;
     }, [onError]);
+
+    useVideoKeyboardToggle(videoRef, true);
 
     useEffect(() => {
         setError(null);

@@ -91,7 +91,7 @@ export function InstructorStudentsClient() {
                         {/* Rows */}
                         {filteredStudents.map((student, idx) => (
                             <div
-                                key={student.id}
+                                key={`${student.id}-${student.course}-${idx}`}
                                 className="grid grid-cols-12 gap-4 p-4 border-b border-border/40 text-sm hover:bg-background/40 transition-colors items-center last:border-0 group cursor-pointer"
                             >
                                 <div className="col-span-3 flex items-center gap-3">

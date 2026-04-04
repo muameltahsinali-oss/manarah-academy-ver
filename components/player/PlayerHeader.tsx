@@ -7,6 +7,7 @@ import { useParams } from "next/navigation";
 import { useCourseData } from "@/lib/hooks/useCoursePlayer";
 import { usePlayer } from "./PlayerContext";
 import { downloadCertificate } from "@/lib/hooks/useCertificates";
+import { CourseProgressBar } from "@/components/engagement/CourseProgressBar";
 
 export function PlayerHeader() {
     const { isFocusMode, isSidebarOpen, setIsSidebarOpen } = usePlayer();
@@ -26,6 +27,12 @@ export function PlayerHeader() {
 
     const currentModule = courseData?.data?.modules
         ?.find((m: any) => m.lessons.some((l: any) => Number(l.id) === currentLessonId));
+
+    const breadcrumbParts = [
+        courseData?.data?.title,
+        currentModule?.title,
+        currentLesson?.title,
+    ].filter(Boolean) as string[];
 
     return (
         <AnimatePresence>
@@ -63,10 +70,28 @@ export function PlayerHeader() {
                             </Link>
                         </div>
 
-                        <div>
-                            <div className="text-xs font-mono text-text/50 uppercase tracking-widest mb-1">
-                                {currentModule ? currentModule.title : "الوحدة الحالية"}
-                            </div>
+                        <div className="min-w-0">
+                            {breadcrumbParts.length > 1 && (
+                                <p
+                                    className="text-[11px] text-text/45 mb-2 leading-relaxed truncate max-w-full"
+                                    dir="rtl"
+                                    title={breadcrumbParts.join(" › ")}
+                                >
+                                    {breadcrumbParts.map((part, i) => (
+                                        <span key={`${i}-${part.slice(0, 12)}`}>
+                                            {i > 0 && <span className="text-text/30 mx-1.5">›</span>}
+                                            <span className={i === breadcrumbParts.length - 1 ? "text-text/55 font-medium" : ""}>
+                                                {part}
+                                            </span>
+                                        </span>
+                                    ))}
+                                </p>
+                            )}
+                            {breadcrumbParts.length < 2 && (
+                                <div className="text-xs font-mono text-text/50 uppercase tracking-widest mb-1">
+                                    {currentModule ? currentModule.title : "الوحدة الحالية"}
+                                </div>
+                            )}
                             <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-text">
                                 {currentLesson ? currentLesson.title : title}
                             </h1>
@@ -83,23 +108,14 @@ export function PlayerHeader() {
                                 تحميل الشهادة
                             </button>
                         )}
-                        <div className="flex flex-col items-center md:items-end gap-2">
-                            <div className="text-[10px] font-mono font-bold text-text/40 uppercase tracking-widest">
-                                تقدم الدورة
-                            </div>
-                            <div className="flex items-center gap-3 w-32">
-                                <div className="h-1 flex-1 bg-border/40 rounded-full overflow-hidden">
-                                    <motion.div
-                                        className="h-full bg-primary"
-                                        initial={{ width: 0 }}
-                                        animate={{ width: `${progress}%` }}
-                                        transition={{ duration: 1, delay: 0.2, ease: "easeOut" }}
-                                    />
-                                </div>
-                                <div className="font-mono text-xs font-bold text-primary">
-                                    {progress}%
-                                </div>
-                            </div>
+                        <div className="w-full max-w-[220px] md:w-56 md:max-w-none">
+                            <CourseProgressBar
+                                value={progress}
+                                size="sm"
+                                showMilestones
+                                showEncouragement
+                                label="تقدم الدورة"
+                            />
                         </div>
                     </div>
                 </motion.div>

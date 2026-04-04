@@ -7,8 +7,8 @@ import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 export function PublicLayout({ children }: { children: React.ReactNode }) {
     return (
         <>
-            <Header />
-            <main className="flex-1 w-full pb-20 md:pb-0">{children}</main>
+            <Header variant="auto" />
+            <main className="flex-1 w-full pb-24 md:pb-0">{children}</main>
             <Footer />
             <MobileBottomNav />
         </>

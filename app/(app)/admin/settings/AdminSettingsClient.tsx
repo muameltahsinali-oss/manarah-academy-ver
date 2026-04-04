@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { getFadeUp, staggerContainer } from "@/lib/motion";
 import { Settings, Save, Globe, Mail, DollarSign, Image as ImageIcon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { get, put } from "@/lib/api";
 
 export function AdminSettingsClient() {
-    const [isLoading, setIsLoading] = useState(false);
     const [settings, setSettings] = useState({
         siteName: "منارة اكاديمي",
         contactEmail: "admin@platformx.com",
@@ -20,6 +21,38 @@ export function AdminSettingsClient() {
         heroSubtitle: "منصتك الأولى للتعلم والتطور المستمر.",
     });
 
+    const { data: settingsRes, isLoading: isLoadingSettings } = useQuery({
+        queryKey: ["admin", "settings"],
+        queryFn: () => get<any>("/admin/settings"),
+    });
+
+    useEffect(() => {
+        if (!settingsRes) return;
+        const s = settingsRes?.data ?? {};
+        setSettings((prev) => ({
+            ...prev,
+            siteName: s.site_name ?? prev.siteName,
+            contactEmail: s.contact_email ?? prev.contactEmail,
+            supportEmail: s.support_email ?? prev.supportEmail,
+            currency: s.currency ?? prev.currency,
+            currencySymbol: s.currency_symbol ?? prev.currencySymbol,
+            logoUrl: s.logo_url ?? prev.logoUrl,
+            faviconUrl: s.favicon_url ?? prev.faviconUrl,
+            heroTitle: s.hero_title ?? prev.heroTitle,
+            heroSubtitle: s.hero_subtitle ?? prev.heroSubtitle,
+        }));
+    }, [settingsRes]);
+
+    const saveMutation = useMutation({
+        mutationFn: (payload: any) => put<any>("/admin/settings", payload),
+        onSuccess: () => {
+            toast.success("تم حفظ الإعدادات بنجاح");
+        },
+        onError: () => {
+            toast.error("حدث خطأ أثناء حفظ الإعدادات");
+        },
+    });
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setSettings((prev) => ({ ...prev, [name]: value }));
@@ -27,12 +60,17 @@ export function AdminSettingsClient() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setIsLoading(true);
-        // Simulate API call
-        setTimeout(() => {
-            setIsLoading(false);
-            toast.success("تم حفظ الإعدادات بنجاح");
-        }, 1000);
+        saveMutation.mutate({
+            site_name: settings.siteName,
+            contact_email: settings.contactEmail,
+            support_email: settings.supportEmail,
+            currency: settings.currency,
+            currency_symbol: settings.currencySymbol,
+            logo_url: settings.logoUrl || null,
+            favicon_url: settings.faviconUrl || null,
+            hero_title: settings.heroTitle,
+            hero_subtitle: settings.heroSubtitle,
+        });
     };
 
     return (
@@ -67,6 +105,7 @@ export function AdminSettingsClient() {
                                 name="siteName"
                                 value={settings.siteName}
                                 onChange={handleChange}
+                                disabled={isLoadingSettings}
                                 className="w-full bg-background border border-border/80 rounded h-11 px-4 text-sm focus:outline-none focus:border-accent transition-colors"
                             />
                         </div>
@@ -79,6 +118,7 @@ export function AdminSettingsClient() {
                                     name="currency"
                                     value={settings.currency}
                                     onChange={handleChange}
+                                    disabled={isLoadingSettings}
                                     className="w-full bg-background border border-border/80 rounded h-11 pr-10 pl-4 text-sm focus:outline-none focus:border-accent transition-colors"
                                 />
                             </div>
@@ -90,6 +130,7 @@ export function AdminSettingsClient() {
                                 name="currencySymbol"
                                 value={settings.currencySymbol}
                                 onChange={handleChange}
+                                disabled={isLoadingSettings}
                                 className="w-full bg-background border border-border/80 rounded h-11 px-4 text-sm focus:outline-none focus:border-accent transition-colors"
                             />
                         </div>
@@ -113,6 +154,7 @@ export function AdminSettingsClient() {
                                 name="heroTitle"
                                 value={settings.heroTitle}
                                 onChange={handleChange}
+                                disabled={isLoadingSettings}
                                 className="w-full bg-background border border-border/80 rounded h-11 px-4 text-sm focus:outline-none focus:border-primary transition-colors"
                             />
                         </div>
@@ -123,6 +165,7 @@ export function AdminSettingsClient() {
                                 value={settings.heroSubtitle}
                                 onChange={handleChange}
                                 rows={3}
+                                disabled={isLoadingSettings}
                                 className="w-full bg-background border border-border/80 rounded p-4 text-sm focus:outline-none focus:border-primary transition-colors resize-none"
                             />
                         </div>
@@ -146,6 +189,7 @@ export function AdminSettingsClient() {
                                 name="contactEmail"
                                 value={settings.contactEmail}
                                 onChange={handleChange}
+                                disabled={isLoadingSettings}
                                 className="w-full bg-background border border-border/80 rounded h-11 px-4 text-sm focus:outline-none focus:border-green-500 transition-colors text-left"
                                 dir="ltr"
                             />
@@ -157,6 +201,7 @@ export function AdminSettingsClient() {
                                 name="supportEmail"
                                 value={settings.supportEmail}
                                 onChange={handleChange}
+                                disabled={isLoadingSettings}
                                 className="w-full bg-background border border-border/80 rounded h-11 px-4 text-sm focus:outline-none focus:border-green-500 transition-colors text-left"
                                 dir="ltr"
                             />
@@ -167,10 +212,10 @@ export function AdminSettingsClient() {
                 <motion.div {...getFadeUp(0.4)} className="flex justify-end gap-4 mt-4">
                     <button
                         type="submit"
-                        disabled={isLoading}
+                        disabled={saveMutation.isPending || isLoadingSettings}
                         className="flex items-center gap-2 px-8 py-3 bg-accent text-white rounded-[4px] font-bold text-sm hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        {isLoading ? (
+                        {saveMutation.isPending ? (
                             <>
                                 <Loader2 className="w-4 h-4 animate-spin" />
                                 جاري الحفظ...

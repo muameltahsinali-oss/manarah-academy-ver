@@ -25,10 +25,25 @@ export interface CourseCardProps {
     tag: string;
     thumbnail?: string | null;
     delay?: number;
+    /** Short personalized line (e.g. recommendation reason). */
+    recommendationHint?: string;
 }
 
 export function CourseCard({
-    id, slug, prefix, title, description, instructor, duration, rating, students, level, tag, thumbnail, delay = 0
+    id,
+    slug,
+    prefix,
+    title,
+    description,
+    instructor,
+    duration,
+    rating,
+    students,
+    level,
+    tag,
+    thumbnail,
+    delay = 0,
+    recommendationHint,
 }: CourseCardProps) {
     const { user } = useAuth();
     const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
@@ -105,6 +120,12 @@ export function CourseCard({
                 <h3 className="text-lg md:text-xl font-bold mb-2 md:mb-3 group-hover:text-primary transition-colors leading-tight line-clamp-2">
                     {title}
                 </h3>
+
+                {recommendationHint && (
+                    <p className="text-[11px] font-medium leading-snug text-primary/90 mb-2 line-clamp-2">
+                        {recommendationHint}
+                    </p>
+                )}
 
                 {description && (
                     <p className="text-xs md:text-sm text-text/70 mb-4 md:mb-6 flex-grow line-clamp-2">

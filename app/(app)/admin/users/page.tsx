@@ -5,15 +5,26 @@ import { get, patch } from "@/lib/api";
 import { Users, ShieldCheck, Mail, Calendar, Loader2, Ban, CheckCircle2, MoreVertical, Search, Filter } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
+import { Pagination } from "@/components/courses/Pagination";
 
 export default function AdminUsersPage() {
     const queryClient = useQueryClient();
     const [searchQuery, setSearchQuery] = useState("");
     const [roleFilter, setRoleFilter] = useState("all");
+    const [statusFilter, setStatusFilter] = useState<"all" | "active" | "suspended">("all");
+    const [page, setPage] = useState(1);
+    const [perPage] = useState(20);
 
     const { data: usersRes, isLoading } = useQuery({
-        queryKey: ["admin", "users"],
-        queryFn: () => get<any>("/admin/users"),
+        queryKey: ["admin", "users", { page, perPage, searchQuery, roleFilter, statusFilter }],
+        queryFn: () =>
+            get<any>("/admin/users", {
+                page,
+                per_page: perPage,
+                search: searchQuery || undefined,
+                role: roleFilter === "all" ? undefined : roleFilter,
+                status: statusFilter === "all" ? undefined : statusFilter,
+            }),
     });
 
     const toggleStatusMutation = useMutation({
@@ -28,13 +39,7 @@ export default function AdminUsersPage() {
     });
 
     const users = usersRes?.data || [];
-
-    const filteredUsers = users.filter((u: any) => {
-        const matchesSearch = u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            u.email.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesRole = roleFilter === "all" || u.role === roleFilter;
-        return matchesSearch && matchesRole;
-    });
+    const meta = usersRes?.meta || {};
 
     const getRoleName = (role: string) => {
         switch (role) {
@@ -69,28 +74,70 @@ export default function AdminUsersPage() {
             {/* Filters Bar */}
             <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
                 <button
-                    onClick={() => setRoleFilter("all")}
+                    onClick={() => {
+                        setRoleFilter("all");
+                        setPage(1);
+                    }}
                     className={`px-4 py-2 rounded text-xs font-bold transition-all whitespace-nowrap ${roleFilter === 'all' ? 'bg-secondary text-white shadow-lg shadow-secondary/10' : 'bg-white border border-border/80 text-text/60 hover:border-secondary/30'}`}
                 >
                     الكل
                 </button>
                 <button
-                    onClick={() => setRoleFilter("student")}
+                    onClick={() => {
+                        setRoleFilter("student");
+                        setPage(1);
+                    }}
                     className={`px-4 py-2 rounded text-xs font-bold transition-all whitespace-nowrap ${roleFilter === 'student' ? 'bg-green-600 text-white shadow-lg shadow-green-600/10' : 'bg-white border border-border/80 text-text/60 hover:border-green-300'}`}
                 >
                     الطلاب
                 </button>
                 <button
-                    onClick={() => setRoleFilter("instructor")}
+                    onClick={() => {
+                        setRoleFilter("instructor");
+                        setPage(1);
+                    }}
                     className={`px-4 py-2 rounded text-xs font-bold transition-all whitespace-nowrap ${roleFilter === 'instructor' ? 'bg-accent text-white shadow-lg shadow-accent/15' : 'bg-white border border-border/80 text-text/60 hover:border-accent/40'}`}
                 >
                     المدربين
                 </button>
                 <button
-                    onClick={() => setRoleFilter("admin")}
+                    onClick={() => {
+                        setRoleFilter("admin");
+                        setPage(1);
+                    }}
                     className={`px-4 py-2 rounded text-xs font-bold transition-all whitespace-nowrap ${roleFilter === 'admin' ? 'bg-red-600 text-white shadow-lg shadow-red-600/10' : 'bg-white border border-border/80 text-text/60 hover:border-red-300'}`}
                 >
                     المدراء
+                </button>
+
+                <span className="mx-2 h-6 w-px bg-border/60" />
+
+                <button
+                    onClick={() => {
+                        setStatusFilter("all");
+                        setPage(1);
+                    }}
+                    className={`px-4 py-2 rounded text-xs font-bold transition-all whitespace-nowrap ${statusFilter === 'all' ? 'bg-black text-white' : 'bg-white border border-border/80 text-text/60 hover:border-black/20'}`}
+                >
+                    كل الحالات
+                </button>
+                <button
+                    onClick={() => {
+                        setStatusFilter("active");
+                        setPage(1);
+                    }}
+                    className={`px-4 py-2 rounded text-xs font-bold transition-all whitespace-nowrap ${statusFilter === 'active' ? 'bg-green-600 text-white' : 'bg-white border border-border/80 text-text/60 hover:border-green-300'}`}
+                >
+                    نشط
+                </button>
+                <button
+                    onClick={() => {
+                        setStatusFilter("suspended");
+                        setPage(1);
+                    }}
+                    className={`px-4 py-2 rounded text-xs font-bold transition-all whitespace-nowrap ${statusFilter === 'suspended' ? 'bg-red-600 text-white' : 'bg-white border border-border/80 text-text/60 hover:border-red-300'}`}
+                >
+                    موقوف
                 </button>
             </div>
 
@@ -115,12 +162,12 @@ export default function AdminUsersPage() {
                                     </div>
                                 </td>
                             </tr>
-                        ) : filteredUsers.length === 0 ? (
+                        ) : users.length === 0 ? (
                             <tr>
                                 <td colSpan={5} className="py-20 text-center text-text/40 font-bold italic">لا توجد نتائج لعملية البحث.</td>
                             </tr>
                         ) : (
-                            filteredUsers.map((user: any) => (
+                            users.map((user: any) => (
                                 <tr key={user.id} className="hover:bg-background/40 transition-colors group">
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3">
@@ -175,6 +222,18 @@ export default function AdminUsersPage() {
                     </tbody>
                 </table>
             </div>
+
+            <div className="flex items-center justify-between">
+                <div className="text-xs text-text/50 font-mono">
+                    الإجمالي: {Number(meta.total ?? 0).toLocaleString("ar-EG")}
+                </div>
+            </div>
+
+            <Pagination
+                currentPage={Number(meta.current_page ?? 1)}
+                lastPage={Number(meta.last_page ?? 1)}
+                onPageChange={(p) => setPage(p)}
+            />
         </div>
     );
 }

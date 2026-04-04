@@ -8,10 +8,11 @@ export function useInstructorCourses() {
     });
 }
 
-export function useInstructorDashboard() {
+export function useInstructorDashboard(enabled = true) {
     return useQuery({
         queryKey: ['instructor', 'dashboard'],
         queryFn: () => get<any>('/instructor/dashboard'),
+        enabled,
     });
 }
 

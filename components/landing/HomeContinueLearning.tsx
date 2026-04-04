@@ -15,7 +15,9 @@ export function HomeContinueLearning() {
 
     if (!isAuthenticated) return null;
 
-    const inProgress = courses.filter((c: any) => !c.is_completed);
+    const inProgress = courses.filter(
+        (c: { status?: string; progress?: number }) => c.status !== "completed" && (c.progress ?? 0) < 100
+    );
     const displayCourses = (inProgress.length > 0 ? inProgress : courses).slice(0, 3);
 
     if (displayCourses.length === 0 && !isLoading) return null;

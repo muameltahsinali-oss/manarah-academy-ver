@@ -2,7 +2,6 @@
 
 import { useSearchParams } from "next/navigation";
 import { usePayment, useSimulatePayment } from "@/lib/hooks/useCheckout";
-import { useAuth } from "@/lib/hooks/useAuth";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { getFadeUp } from "@/lib/motion";
@@ -10,17 +9,16 @@ import { CreditCard, ShieldCheck, CheckCircle2, Loader2, ArrowRight } from "luci
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-export default function CheckoutPage() {
+export default function CheckoutPageClient() {
     const searchParams = useSearchParams();
     const paymentId = searchParams.get("payment_id");
-    const { user } = useAuth();
     const router = useRouter();
 
-    const { data: payment, isLoading, error } = usePayment(paymentId);
+    const { data: paymentResponse, isLoading, error } = usePayment(paymentId);
     const simulateMutation = useSimulatePayment();
+    const payment = paymentResponse?.data ?? paymentResponse;
 
-    // Require payment_id in URL; avoid calling API with invalid/missing id
-    const hasValidPaymentId = paymentId != null && paymentId !== '' && !Number.isNaN(Number(paymentId));
+    const hasValidPaymentId = paymentId != null && paymentId !== "" && !Number.isNaN(Number(paymentId));
 
     const handleSimulatePayment = async () => {
         if (!paymentId) return;
@@ -28,9 +26,17 @@ export default function CheckoutPage() {
         try {
             await simulateMutation.mutateAsync(Number(paymentId));
             toast.success("تمت محاكاة عملية الدفع بنجاح!");
-            router.push(`/learn/${payment.course.slug}`);
-        } catch (err: any) {
-            toast.error(err.message || "فشل محاكاة الدفع.");
+            const courseSlug = payment?.course?.slug;
+            if (courseSlug) {
+                router.push(`/learn/${courseSlug}`);
+                return;
+            }
+
+            toast.success("تم الدفع بنجاح، يمكنك متابعة التعلم من صفحة دوراتي.");
+            router.push("/dashboard/courses");
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : "فشل محاكاة الدفع.";
+            toast.error(msg);
         }
     };
 
@@ -39,7 +45,9 @@ export default function CheckoutPage() {
             <div className="min-h-screen flex flex-col items-center justify-center gap-4">
                 <h2 className="text-2xl font-bold text-red-500">رابط الدفع غير صالح أو منتهي</h2>
                 <p className="text-text/70">استخدم الرابط المرسل بعد بدء عملية الدفع، أو اختر دورة للاشتراك فيها.</p>
-                <Link href="/courses" className="text-primary hover:underline">العودة للدورات</Link>
+                <Link href="/courses" className="text-primary hover:underline">
+                    العودة للدورات
+                </Link>
             </div>
         );
     }
@@ -52,12 +60,16 @@ export default function CheckoutPage() {
         );
     }
 
-    if (error || !payment) {
+    if (error || !payment || !payment?.course) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center gap-4">
                 <h2 className="text-2xl font-bold text-red-500">حدث خطأ أثناء تحميل بيانات الدفع</h2>
-                <p className="text-text/70">{(error as Error)?.message || 'تأكد من تسجيل الدخول واستخدام رابط الدفع الصحيح.'}</p>
-                <Link href="/courses" className="text-primary hover:underline">العودة للدورات</Link>
+                <p className="text-text/70">
+                    {(error as Error)?.message || "تأكد من تسجيل الدخول واستخدام رابط الدفع الصحيح."}
+                </p>
+                <Link href="/courses" className="text-primary hover:underline">
+                    العودة للدورات
+                </Link>
             </div>
         );
     }
@@ -69,7 +81,6 @@ export default function CheckoutPage() {
                     <h1 className="text-3xl md:text-4xl font-bold mb-8">إتمام عملية الدفع</h1>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        {/* Order Summary */}
                         <div className="md:col-span-2 space-y-6">
                             <div className="p-6 bg-white border border-border/80 rounded-lg shadow-sm">
                                 <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
@@ -120,7 +131,6 @@ export default function CheckoutPage() {
                             </div>
                         </div>
 
-                        {/* Sidebar Info */}
                         <div className="space-y-6">
                             <div className="p-6 bg-secondary text-white rounded-lg">
                                 <ShieldCheck className="w-10 h-10 mb-4 text-primary" />
@@ -129,7 +139,7 @@ export default function CheckoutPage() {
                                     جميع معاملاتنا مشفرة وآمنة تماماً. حقوقك محفوظة في استرجاع المبلغ خلال 14 يوم.
                                 </p>
                             </div>
-                            
+
                             <div className="text-xs text-text/40 leading-relaxed text-center">
                                 بالضغط على إتمام الدفع، أنت توافق على شروط الاستخدام وسياسة الخصوصية الخاصة بمنصة منارة اكاديمي.
                             </div>

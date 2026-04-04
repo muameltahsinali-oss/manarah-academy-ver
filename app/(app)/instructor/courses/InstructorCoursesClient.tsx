@@ -12,11 +12,13 @@ export interface InstructorCourse {
     students: number;
     rating: number;
     revenue: number;
-    status: "published" | "draft";
+    status: "draft" | "submitted" | "approved" | "rejected";
+    rejection_reason?: string | null;
 }
 import { useInstructorCourses, useUpdateCourse, useDeleteCourse } from "@/lib/hooks/useInstructor";
 import { Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { usePublishCourse } from "@/lib/hooks/useInstructor";
 
 export function InstructorCoursesClient() {
     const { data: res, isLoading } = useInstructorCourses();
@@ -30,7 +32,9 @@ export function InstructorCoursesClient() {
         );
     }
 
-    const published = initialData.filter(c => c.status === "published");
+    const approved = initialData.filter(c => c.status === "approved");
+    const submitted = initialData.filter(c => c.status === "submitted");
+    const rejected = initialData.filter(c => c.status === "rejected");
     const drafts = initialData.filter(c => c.status === "draft");
 
     return (
@@ -65,16 +69,50 @@ export function InstructorCoursesClient() {
                 </div>
             ) : (
                 <>
-                    {/* Published Courses */}
-                    {published.length > 0 && (
+                    {/* Approved Courses */}
+                    {approved.length > 0 && (
                         <section>
                             <motion.h2 {...getFadeUp(0.1, 0.4)} className="text-lg font-bold mb-6 flex items-center gap-2">
                                 <span className="w-2 h-2 rounded-full bg-primary" />
-                                منشورة ({published.length})
+                                معتمدة ({approved.length})
                             </motion.h2>
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                {published.map((course, idx) => (
+                                {approved.map((course, idx) => (
                                     <motion.div key={course.id} {...getFadeUp(0.2 + idx * 0.1, 0.5)}>
+                                        <CourseManagerCard course={course} />
+                                    </motion.div>
+                                ))}
+                            </div>
+                        </section>
+                    )}
+
+                    {/* Submitted Courses */}
+                    {submitted.length > 0 && (
+                        <section>
+                            <motion.h2 {...getFadeUp(0.2, 0.4)} className="text-lg font-bold mb-6 flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-secondary" />
+                                بانتظار المراجعة ({submitted.length})
+                            </motion.h2>
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                {submitted.map((course, idx) => (
+                                    <motion.div key={course.id} {...getFadeUp(0.3 + idx * 0.1, 0.5)}>
+                                        <CourseManagerCard course={course} />
+                                    </motion.div>
+                                ))}
+                            </div>
+                        </section>
+                    )}
+
+                    {/* Rejected Courses */}
+                    {rejected.length > 0 && (
+                        <section>
+                            <motion.h2 {...getFadeUp(0.25, 0.4)} className="text-lg font-bold mb-6 flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-red-500" />
+                                مرفوضة ({rejected.length})
+                            </motion.h2>
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                {rejected.map((course, idx) => (
+                                    <motion.div key={course.id} {...getFadeUp(0.35 + idx * 0.1, 0.5)}>
                                         <CourseManagerCard course={course} />
                                     </motion.div>
                                 ))}
@@ -105,19 +143,9 @@ export function InstructorCoursesClient() {
 }
 
 function CourseManagerCard({ course }: { course: InstructorCourse }) {
-    const isPublished = course.status === "published";
     const updateCourse = useUpdateCourse();
     const deleteCourse = useDeleteCourse();
-
-    const toggleStatus = () => {
-        const newStatus = isPublished ? "draft" : "published";
-        updateCourse.mutate({
-            id: course.id,
-            data: { status: newStatus }
-        }, {
-            onSuccess: () => toast.success(`تم ${newStatus === 'published' ? 'نشر' : 'إلغاء نشر'} الدورة بنجاح`)
-        });
-    };
+    const submitForReview = usePublishCourse();
 
     const handleDelete = () => {
         if (confirm("هل أنت متأكد من حذف هذه الدورة نهائياً؟")) {
@@ -127,6 +155,8 @@ function CourseManagerCard({ course }: { course: InstructorCourse }) {
         }
     };
 
+    const canSubmit = course.status === "draft" || course.status === "rejected";
+
     return (
         <div className="group flex flex-col justify-between h-full bg-white border border-border/80 rounded-[4px] p-6 transition-all hover:border-primary">
             <div>
@@ -135,17 +165,26 @@ function CourseManagerCard({ course }: { course: InstructorCourse }) {
                         ID: {course.id}
                     </span>
                     <div className="flex items-center gap-2">
-                        <button
-                            onClick={toggleStatus}
-                            disabled={updateCourse.isPending}
-                            className={`text-[10px] font-mono font-bold px-2 py-1 border rounded-[4px] tracking-widest transition-colors ${isPublished
-                                ? "bg-green-50 border-green-200 text-green-600 hover:bg-amber-50 hover:border-amber-200 hover:text-amber-600"
-                                : "bg-amber-50 border-amber-200 text-amber-600 hover:bg-green-50 hover:border-green-200 hover:text-green-600"
-                                }`}
-                            title={isPublished ? "إلغاء النشر" : "نشر الدورة"}
+                        <span
+                            className={`text-[10px] font-mono font-bold px-2 py-1 border rounded-[4px] tracking-widest ${
+                                course.status === "approved"
+                                    ? "bg-green-50 border-green-200 text-green-600"
+                                    : course.status === "submitted"
+                                    ? "bg-primary/5 border-primary/20 text-primary"
+                                    : course.status === "rejected"
+                                    ? "bg-red-50 border-red-200 text-red-600"
+                                    : "bg-amber-50 border-amber-200 text-amber-600"
+                            }`}
+                            title="حالة الدورة"
                         >
-                            {updateCourse.isPending ? "..." : isPublished ? "نشط" : "مسودة"}
-                        </button>
+                            {course.status === "approved"
+                                ? "معتمدة"
+                                : course.status === "submitted"
+                                ? "قيد المراجعة"
+                                : course.status === "rejected"
+                                ? "مرفوضة"
+                                : "مسودة"}
+                        </span>
                         <button
                             onClick={handleDelete}
                             disabled={deleteCourse.isPending}
@@ -160,12 +199,18 @@ function CourseManagerCard({ course }: { course: InstructorCourse }) {
                     {course.title}
                 </h3>
 
+                {course.status === "rejected" && course.rejection_reason && (
+                    <div className="mb-4 rounded-[4px] border border-red-100 bg-red-50 px-3 py-2 text-xs text-red-700">
+                        <span className="font-bold">سبب الرفض:</span> {course.rejection_reason}
+                    </div>
+                )}
+
                 <div className="flex items-center gap-6 text-sm font-medium text-text mt-4">
                     <div className="flex items-center gap-1.5 font-mono">
                         <Users className="w-4 h-4 text-text/40" />
                         {course.students || 0}
                     </div>
-                    {isPublished && (
+                    {course.status === "approved" && (
                         <>
                             <div className="flex items-center gap-1.5 font-mono">
                                 <Star className="w-4 h-4 text-text/40" />
@@ -188,7 +233,7 @@ function CourseManagerCard({ course }: { course: InstructorCourse }) {
                     <Edit3 className="w-4 h-4" />
                     تعديل المحتوى
                 </Link>
-                {isPublished && (
+                {course.status === "approved" && (
                     <Link
                         href={`/courses/${course.slug}`}
                         className="flex-1 flex items-center justify-center gap-2 px-4 py-2 border border-border text-xs font-bold rounded-[4px] hover:bg-black/5 transition-colors"
@@ -197,7 +242,7 @@ function CourseManagerCard({ course }: { course: InstructorCourse }) {
                         معاينة
                     </Link>
                 )}
-                {isPublished && (
+                {course.status === "approved" && (
                     <Link
                         href={`/instructor/analytics?course=${course.id}`}
                         className="flex-1 flex items-center justify-center gap-2 p-3 bg-primary/5 border border-primary/20 rounded-[4px] text-sm font-bold transition-colors hover:bg-primary/10 text-primary"
@@ -205,6 +250,23 @@ function CourseManagerCard({ course }: { course: InstructorCourse }) {
                         <BarChart2 className="w-4 h-4" />
                         تحليل الأداء
                     </Link>
+                )}
+                {canSubmit && (
+                    <button
+                        type="button"
+                        onClick={() => {
+                            if (!confirm("إرسال الدورة للمراجعة؟ بعد الإرسال ستصبح الدورة للقراءة فقط حتى تتم المراجعة.")) return;
+                            submitForReview.mutate(course.id, {
+                                onSuccess: () => toast.success("تم إرسال الدورة للمراجعة"),
+                                onError: () => toast.error("تعذر إرسال الدورة للمراجعة"),
+                            });
+                        }}
+                        disabled={submitForReview.isPending}
+                        className="flex-1 flex items-center justify-center gap-2 p-3 bg-secondary/10 border border-secondary/20 rounded-[4px] text-sm font-bold transition-colors hover:bg-secondary/15 text-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="إرسال للمراجعة"
+                    >
+                        إرسال للمراجعة
+                    </button>
                 )}
             </div>
         </div>

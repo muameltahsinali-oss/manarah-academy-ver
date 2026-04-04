@@ -47,12 +47,16 @@ export default function DraftPreviewPage() {
                     slug={course.slug || ""}
                     title={course.title}
                     description={course.description}
+                    shortDescription={course.short_description}
+                    promoVideoUrl={course.promo_video_url}
                     instructor={course.instructor?.name || "مدرّبك"}
                     rating="0.0"
                     students="0"
                     duration={course.duration || "غير محدد"}
                     isEnrolled={false}
                     progress={0}
+                    price={course.price}
+                    thumbnail={course.thumbnail}
                 />
             ) : (
                 <div className="py-20 text-center">خطأ في تحميل بيانات المعاينة</div>

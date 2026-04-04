@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/hooks/useAuth";
-import { LayoutDashboard, Users, BookOpenCheck, Settings, LogOut, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, Users, BookOpenCheck, Settings, LogOut, ShieldCheck, ScrollText, BarChart3 } from "lucide-react";
 
 const sidebarLinks = [
     { name: "لوحة التحكم", href: "/admin/dashboard", icon: LayoutDashboard },
     { name: "إدارة المستخدمين", href: "/admin/users", icon: Users },
     { name: "مراجعة الدورات", href: "/admin/courses", icon: BookOpenCheck },
+    { name: "التحليلات", href: "/admin/analytics", icon: BarChart3 },
+    { name: "سجل التدقيق", href: "/admin/audit-logs", icon: ScrollText },
     { name: "الإعدادات", href: "/admin/settings", icon: Settings },
 ];
 

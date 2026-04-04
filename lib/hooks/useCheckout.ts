@@ -26,8 +26,9 @@ export function useCheckout() {
             return response;
         },
         onSuccess: (data) => {
-            if (data.redirect_url) {
-                router.push(data.redirect_url);
+            const redirectUrl = data?.redirect_url ?? data?.data?.redirect_url;
+            if (redirectUrl) {
+                router.push(redirectUrl);
             }
         },
     });

@@ -1,48 +1,92 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { get } from "@/lib/api";
 import { motion } from "framer-motion";
 import { getFadeUp } from "@/lib/motion";
-import { Search, Loader2, Clock, Star, Users } from "lucide-react";
+import { Search, Clock, Star, Users } from "lucide-react";
+import { CourseCardSkeleton } from "@/components/ui/CourseCardSkeleton";
 import Link from "next/link";
 
 export default function SearchResultsPage() {
     const searchParams = useSearchParams();
-    const query = searchParams.get("q");
+    const router = useRouter();
+    const rawQuery = searchParams.get("q") ?? "";
+    const rawPage = searchParams.get("page");
+
+    const page = useMemo(() => {
+        const n = rawPage ? Number(rawPage) : 1;
+        return Number.isFinite(n) && n > 0 ? Math.floor(n) : 1;
+    }, [rawPage]);
+
+    // Debounce URL-driven search to avoid hammering the API while typing.
+    const [debouncedQuery, setDebouncedQuery] = useState(rawQuery);
+    const previousQueryRef = useRef(rawQuery);
+
+    useEffect(() => {
+        const t = window.setTimeout(() => setDebouncedQuery(rawQuery.trim()), 300);
+        return () => window.clearTimeout(t);
+    }, [rawQuery]);
+
+    useEffect(() => {
+        // If user types a new query, reset pagination to page 1.
+        if (previousQueryRef.current !== rawQuery && page !== 1) {
+            const params = new URLSearchParams(searchParams.toString());
+            params.set("page", "1");
+            router.push(`/search?${params.toString()}`);
+        }
+        previousQueryRef.current = rawQuery;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [rawQuery, page, router, searchParams]);
+
+    const canSearch = debouncedQuery.length >= 2;
 
     const { data: results, isLoading } = useQuery({
-        queryKey: ["search", query],
-        queryFn: () => get<any>(`/courses?search=${query}`),
-        enabled: !!query,
+        queryKey: ["search", debouncedQuery, page],
+        queryFn: () =>
+            get<any>(
+                `/courses?search=${encodeURIComponent(debouncedQuery)}&page=${page}`
+            ),
+        enabled: canSearch,
+        staleTime: 5000,
+        refetchOnWindowFocus: false,
+        placeholderData: keepPreviousData,
     });
 
     const courses = results?.data || [];
+    const meta = results?.meta;
 
     return (
-        <div className="max-w-7xl mx-auto px-6 lg:px-12 py-16 min-h-screen">
-            <motion.div {...getFadeUp(0, 0.4)} className="mb-12">
-                <div className="flex items-center gap-4 mb-2 text-text/50">
-                    <Search className="w-5 h-5" />
+        <div className="max-w-7xl mx-auto min-h-screen px-4 pb-28 pt-8 md:px-6 md:pb-16 md:pt-16 lg:px-12">
+            <motion.div {...getFadeUp(0, 0.4)} className="mb-8 md:mb-12">
+                <div className="mb-2 flex items-center gap-3 text-text/50">
+                    <Search className="h-5 w-5 shrink-0" aria-hidden />
                     <span className="text-sm font-medium">نتائج البحث عن:</span>
                 </div>
-                <h1 className="text-4xl font-bold tracking-tight">"{query}"</h1>
+                <h1 className="text-2xl font-bold tracking-tight break-words md:text-4xl">&quot;{rawQuery}&quot;</h1>
             </motion.div>
 
             {isLoading ? (
-                <div className="flex flex-col items-center justify-center py-20 gap-4">
-                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                    <p className="text-sm font-mono text-text/60">جاري البحث عن أفضل الدورات...</p>
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3" aria-busy aria-label="جاري البحث">
+                    {[0, 1, 2, 3, 4, 5].map((i) => (
+                        <CourseCardSkeleton key={i} delay={i * 0.04} />
+                    ))}
+                </div>
+            ) : !canSearch ? (
+                <div className="col-span-full rounded-[4px] border border-border/80 bg-white py-16 text-center md:py-20">
+                    <h3 className="mb-2 text-lg font-bold">اكتب كلمة بحث أكثر</h3>
+                    <p className="text-sm text-text/60">لتحسين النتائج، نحتاج على الأقل حرفين.</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:gap-8 lg:grid-cols-3">
                     {courses.map((course: any, idx: number) => (
                         <motion.div
                             key={course.id}
                             {...getFadeUp(idx * 0.05, 0.4)}
                         >
-                            <Link href={`/courses/${course.slug}`} className="block h-full border border-border/80 rounded-[4px] p-6 bg-white transition-all hover:border-primary hover:shadow-sm cursor-pointer group flex flex-col">
+                            <Link href={`/courses/${course.slug}`} className="group flex h-full min-h-[44px] cursor-pointer flex-col rounded-[4px] border border-border/80 bg-white p-5 transition-all hover:border-primary hover:shadow-sm active:scale-[0.99] md:p-6 touch-manipulation">
                                 <div className="flex justify-between items-start mb-6">
                                     <span className="text-xs font-mono font-bold px-2 py-1 bg-background border rounded">
                                         {course.level === 'beginner' ? 'مبتدئ' : course.level === 'intermediate' ? 'متوسط' : 'متقدم'}
@@ -82,6 +126,42 @@ export default function SearchResultsPage() {
                             <p className="text-sm text-text/60">جرب كلمات بحث مختلفة أو تصفح كافة التصنيفات.</p>
                         </div>
                     )}
+                </div>
+            )}
+
+            {canSearch && meta?.last_page > 1 && (
+                <div className="mt-8 flex flex-wrap items-center justify-center gap-3 md:mt-10 md:gap-4">
+                    <button
+                        type="button"
+                        disabled={(meta?.current_page ?? 1) <= 1}
+                        onClick={() => {
+                            const next = (meta?.current_page ?? 1) - 1;
+                            const params = new URLSearchParams(searchParams.toString());
+                            params.set("page", String(next));
+                            router.push(`/search?${params.toString()}`);
+                        }}
+                        className="min-h-11 min-w-[5rem] rounded-[4px] border border-border/80 px-5 py-2.5 text-sm font-bold transition-colors hover:bg-black/[0.03] disabled:opacity-50 touch-manipulation active:scale-[0.98]"
+                    >
+                        السابق
+                    </button>
+
+                    <div className="text-sm text-text/60">
+                        الصفحة {(meta?.current_page ?? 1)} من {meta?.last_page}
+                    </div>
+
+                    <button
+                        type="button"
+                        disabled={(meta?.current_page ?? 1) >= meta?.last_page}
+                        onClick={() => {
+                            const next = (meta?.current_page ?? 1) + 1;
+                            const params = new URLSearchParams(searchParams.toString());
+                            params.set("page", String(next));
+                            router.push(`/search?${params.toString()}`);
+                        }}
+                        className="min-h-11 min-w-[5rem] rounded-[4px] border border-border/80 px-5 py-2.5 text-sm font-bold transition-colors hover:bg-black/[0.03] disabled:opacity-50 touch-manipulation active:scale-[0.98]"
+                    >
+                        التالي
+                    </button>
                 </div>
             )}
         </div>

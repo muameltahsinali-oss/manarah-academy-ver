@@ -82,7 +82,7 @@ export default function PaymentsHistoryPage() {
                                         <td className="px-6 py-4 text-center">
                                             {payment.status === 'pending' ? (
                                                 <Link
-                                                    href={`/checkout/${payment.course.id}?payment_id=${payment.id}`}
+                                                    href={`/checkout?payment_id=${payment.id}`}
                                                     className="text-xs font-bold text-primary hover:underline flex items-center justify-center gap-1"
                                                 >
                                                     إكمال الدفع

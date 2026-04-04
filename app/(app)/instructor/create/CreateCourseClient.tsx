@@ -11,6 +11,8 @@ import { useCreateCourse, useInstructorCourse, useUpdateCourse } from "@/lib/hoo
 import { useSearchParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 
+import { isValidPromoVideoUrl } from "@/lib/utils/promoVideo";
+import { MAX_LEARNING_OUTCOMES } from "@/components/instructor/course-builder/LearningOutcomesField";
 import { CourseInfoForm } from "@/components/instructor/course-builder/CourseInfoForm";
 import { CurriculumBuilder } from "@/components/instructor/course-builder/CurriculumBuilder";
 import { PricingForm } from "@/components/instructor/course-builder/PricingForm";
@@ -31,12 +33,32 @@ const createCourseSchema = z.object({
     title: z.string().min(5, "يجب أن يحتوي العنوان على 5 أحرف على الأقل"),
     slug: z.string().min(3, "الرابط القصير قصير جداً"),
     description: z.string().min(20, "يرجى كتابة وصف أطول للتوضيح للطالب"),
+    /** اختياري — يُترك فارغاً إن لم يكن هناك فيديو تعريفي */
+    shortDescription: z.string().max(5000, "الوصف القصير طويل جداً"),
+    /** اختياري — فارغ أو رابط يوتيوب/فيميو صالح فقط */
+    promoVideoUrl: z
+        .string()
+        .max(2048, "الرابط طويل جداً")
+        .refine(
+            (v) => {
+                const t = (v ?? "").trim();
+                return t === "" || isValidPromoVideoUrl(t);
+            },
+            { message: "إذا أدخلت رابطاً يجب أن يكون يوتيوب أو فيميو صالحاً (أو اترك الحقل فارغاً)" }
+        ),
     category: z.string(),
     level: z.string(),
     type: z.string(),
     price: z.string().optional().or(z.literal("")),
     discountPrice: z.string().optional().or(z.literal("")),
     thumbnail: z.string().optional().or(z.literal("")),
+    learningOutcomeRows: z
+        .array(
+            z.object({
+                value: z.string().max(500, "كل نقطة 500 حرفاً كحد أقصى"),
+            })
+        )
+        .max(MAX_LEARNING_OUTCOMES, `يمكنك إضافة ${MAX_LEARNING_OUTCOMES} نتائج تعلّم كحد أقصى`),
 });
 
 export type CourseFormValues = z.infer<typeof createCourseSchema>;
@@ -65,12 +87,15 @@ export function CreateCourseClient() {
             title: "",
             slug: "",
             description: "",
+            shortDescription: "",
+            promoVideoUrl: "",
             category: "برمجة الواجهات",
             level: "مبتدئ",
             type: "مدفوعة باشتراك دائم",
             price: "149",
             discountPrice: "",
             thumbnail: "",
+            learningOutcomeRows: [] as { value: string }[],
         },
         mode: "onChange"
     });
@@ -84,29 +109,47 @@ export function CreateCourseClient() {
                 title: course.title || "",
                 slug: course.slug || "",
                 description: course.description || "",
+                shortDescription: course.short_description || "",
+                promoVideoUrl: course.promo_video_url || "",
                 category: course.category || "برمجة الواجهات",
                 level: course.level === "beginner" ? "مبتدئ" : course.level === "intermediate" ? "متوسط" : "متقدم",
                 type: course.type || "مدفوعة باشتراك دائم",
                 price: course.price?.toString() || "0",
                 discountPrice: course.discount_price?.toString() || "",
                 thumbnail: course.thumbnail || "",
+                learningOutcomeRows: (() => {
+                    const raw = Array.isArray(course.learning_outcomes)
+                        ? course.learning_outcomes
+                        : Array.isArray(course.outcomes)
+                          ? course.outcomes
+                          : [];
+                    return raw
+                        .filter((v: unknown) => typeof v === "string" && v.trim().length > 0)
+                        .map((v: string) => ({ value: v.trim() }));
+                })(),
             });
         }
     }, [courseRes, reset]);
 
     const handleSaveDraft = async (data: CourseFormValues) => {
         try {
+            const learning_outcomes = (data.learningOutcomeRows ?? [])
+                .map((row) => row.value.trim())
+                .filter(Boolean);
+
             const payload = {
                 title: data.title,
                 slug: data.slug,
                 description: data.description,
+                short_description: data.shortDescription?.trim() ? data.shortDescription.trim() : null,
+                promo_video_url: data.promoVideoUrl?.trim() ? data.promoVideoUrl.trim() : null,
                 category: data.category,
                 type: data.type,
                 price: parseFloat(data.price || "0"),
                 discount_price: data.discountPrice ? parseFloat(data.discountPrice) : null,
                 thumbnail: data.thumbnail || null,
                 level: data.level === "مبتدئ" ? "beginner" : data.level === "متوسط" ? "intermediate" : "advanced",
-                status: 'draft'
+                learning_outcomes: learning_outcomes.length > 0 ? learning_outcomes : [],
             };
 
             if (isEdit && localCourseId) {

@@ -2,19 +2,13 @@
 
 import { AdminSidebar } from "@/components/layout/AdminSidebar";
 import { Header } from "@/components/layout/Header";
-import { useState } from "react";
-import { Menu, X } from "lucide-react";
-import { AnimatePresence, motion } from "framer-motion";
-import { getFadeIn } from "@/lib/motion";
 import { UserGuard } from "@/components/layout/UserGuard";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
     return (
         <UserGuard allowedRoles={["admin"]}>
             <div className="min-h-screen bg-background flex flex-col">
-                <Header />
+                <Header variant="admin" />
 
                 <div className="flex-1 flex overflow-hidden lg:h-[calc(100vh-64px)]">
                     {/* Desktop Sidebar Content */}
@@ -30,36 +24,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                             </div>
                         </main>
                     </div>
-
-                    {/* Mobile Menu Button */}
-                    <button
-                        className="lg:hidden fixed bottom-6 left-6 z-50 w-14 h-14 bg-accent text-white rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-105"
-                        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                    >
-                        {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-                    </button>
-
-                    {/* Mobile Drawer */}
-                    <AnimatePresence>
-                        {isMobileMenuOpen && (
-                            <>
-                                <motion.div
-                                    {...getFadeIn(0, 0.3)}
-                                    className="lg:hidden fixed inset-0 bg-black/40 z-40"
-                                    onClick={() => setIsMobileMenuOpen(false)}
-                                />
-                                <motion.div
-                                    initial={{ x: "100%" }}
-                                    animate={{ x: 0 }}
-                                    exit={{ x: "100%" }}
-                                    transition={{ duration: 0.3, ease: "easeOut" }}
-                                    className="lg:hidden fixed right-0 top-0 bottom-0 w-72 bg-background z-50 border-l border-border/80"
-                                >
-                                    <AdminSidebar />
-                                </motion.div>
-                            </>
-                        )}
-                    </AnimatePresence>
                 </div>
             </div>
         </UserGuard>

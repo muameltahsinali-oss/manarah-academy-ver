@@ -5,6 +5,7 @@ import { getFadeUp, staggerContainer } from "@/lib/motion";
 import { Users, BookOpen, DollarSign, Activity, MonitorPlay, Loader2 } from "lucide-react";
 import { useAdminDashboard } from "@/lib/hooks/useDashboard";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import Link from "next/link";
 
 export function AdminDashboardClient() {
     const { data: res, isLoading } = useAdminDashboard();
@@ -76,9 +77,44 @@ export function AdminDashboardClient() {
                 </motion.div>
             </div>
 
+            {/* Review Queues */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <motion.div {...getFadeUp(0.45)} className="bg-white border border-border/80 rounded-[4px] p-6">
+                    <div className="flex items-start justify-between gap-4">
+                        <div>
+                            <h2 className="text-lg font-bold">الدورات بانتظار المراجعة</h2>
+                            <p className="text-xs text-text/60 mt-1">دورات تم إرسالها من المدربين للمراجعة.</p>
+                        </div>
+                        <div className="text-3xl font-black text-primary">
+                            {data.review_queues?.pending_courses?.toLocaleString?.("ar-EG") ?? 0}
+                        </div>
+                    </div>
+                    <div className="mt-5">
+                        <Link
+                            href="/admin/courses"
+                            className="inline-flex items-center justify-center px-4 py-2 text-xs font-bold rounded-[4px] border border-border/80 hover:bg-black/5 transition-colors"
+                        >
+                            فتح قائمة الدورات
+                        </Link>
+                    </div>
+                </motion.div>
+
+                <motion.div {...getFadeUp(0.5)} className="bg-white border border-border/80 rounded-[4px] p-6">
+                    <div className="flex items-start justify-between gap-4">
+                        <div>
+                            <h2 className="text-lg font-bold">مدربين بانتظار الاعتماد</h2>
+                            <p className="text-xs text-text/60 mt-1">حسابات مدربين جديدة تحتاج موافقة.</p>
+                        </div>
+                        <div className="text-3xl font-black text-accent">
+                            {data.review_queues?.pending_instructors?.toLocaleString?.("ar-EG") ?? 0}
+                        </div>
+                    </div>
+                </motion.div>
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Main Chart Area (Placeholder for actual chart integration like Recharts) */}
-                <motion.div {...getFadeUp(0.5)} className="lg:col-span-2 bg-white border border-border/80 rounded-[4px] p-6">
+                <motion.div {...getFadeUp(0.55)} className="lg:col-span-2 bg-white border border-border/80 rounded-[4px] p-6">
                     <div className="flex items-center justify-between mb-8">
                         <div>
                             <h2 className="text-lg font-bold">نمو الإيرادات والتسجيلات</h2>
@@ -119,7 +155,7 @@ export function AdminDashboardClient() {
                 </motion.div>
 
                 {/* Recent Users List */}
-                <motion.div {...getFadeUp(0.6)} className="bg-white border border-border/80 rounded-[4px] p-6">
+                <motion.div {...getFadeUp(0.65)} className="bg-white border border-border/80 rounded-[4px] p-6">
                     <h2 className="text-lg font-bold mb-6">أحدث المستخدمين</h2>
                     <div className="flex flex-col gap-6">
                         {data.recent_users?.map((user: any) => (

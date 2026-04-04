@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, BookOpen, Settings, LogOut, TrendingUp, Bell, User, ShieldCheck, GraduationCap, Award, Heart, Receipt, Route } from "lucide-react";
+import { LayoutDashboard, BookOpen, Settings, LogOut, TrendingUp, User, ShieldCheck, GraduationCap, Heart, Receipt, Route } from "lucide-react";
 import { useAuth } from "@/lib/hooks/useAuth";
 
 const studentLinks = [
@@ -10,8 +10,6 @@ const studentLinks = [
     { name: "دوراتي", href: "/dashboard/courses", icon: BookOpen },
     { name: "مسارات التعلم", href: "/dashboard/learning-paths", icon: Route },
     { name: "سجل المدفوعات", href: "/dashboard/payments", icon: Receipt },
-    { name: "الشهادات", href: "/dashboard/certificates", icon: Award },
-    { name: "الأوسمة", href: "/dashboard/badges", icon: Award },
     { name: "قائمة الرغبات", href: "/dashboard/wishlist", icon: Heart },
     { name: "تقدمي", href: "/dashboard/progress", icon: TrendingUp },
 ];

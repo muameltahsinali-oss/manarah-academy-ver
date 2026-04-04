@@ -7,9 +7,9 @@ import { Container } from "@/components/ui/Container";
 import { useAuth } from "@/lib/hooks/useAuth";
 
 export function HomeFinalCTA() {
-    const { isAuthenticated, isLoading } = useAuth();
+    const { isAuthenticated, isSessionPending } = useAuth();
 
-    if (isLoading || isAuthenticated) return null;
+    if (isSessionPending || isAuthenticated) return null;
 
     return (
         <Section spacing="xl" className="bg-gradient-to-b from-secondary to-background text-white">

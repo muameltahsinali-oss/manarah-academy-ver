@@ -5,20 +5,20 @@ import { Section } from "@/components/ui/Section";
 import { Container } from "@/components/ui/Container";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useLearningPaths, type LearningPathItem } from "@/lib/hooks/useLearningPaths";
+import { useCourseCategories } from "@/lib/hooks/useDiscovery";
 import { Route, ArrowLeft, Loader2, Sparkles } from "lucide-react";
 
-const CATEGORIES = [
-    { label: "المعمارية", slug: "architecture" },
-    { label: "الواجهات الأمامية", slug: "frontend" },
-    { label: "الخوادم", slug: "backend" },
-    { label: "عمليات التطوير", slug: "devops" },
-    { label: "الذكاء الاصطناعي", slug: "ai" },
-];
-
-export function HomeLearningPathsSection() {
+export function HomeLearningPathsSection({
+    hideCategoryBrowse = false,
+}: {
+    /** When true, omits the static/dynamic category chips (e.g. discovery hub shows categories separately). */
+    hideCategoryBrowse?: boolean;
+}) {
     const { isAuthenticated } = useAuth();
     const { data: pathsRes, isLoading } = useLearningPaths(!!isAuthenticated);
     const paths: LearningPathItem[] = pathsRes?.data ?? [];
+    const { data: catRes, isLoading: catLoading } = useCourseCategories();
+    const categories = catRes?.data?.categories ?? [];
 
     return (
         <Section spacing="xl" className="bg-white border-b border-border">
@@ -83,20 +83,40 @@ export function HomeLearningPathsSection() {
                     </div>
                 )}
 
-                <div>
-                    <h3 className="text-sm font-bold text-text/80 mb-4">تصفح حسب التصنيف</h3>
-                    <div className="flex flex-wrap gap-2">
-                        {CATEGORIES.map((cat) => (
-                            <Link
-                                key={cat.slug}
-                                href="/courses"
-                                className="px-4 py-2 rounded-[4px] bg-background border border-border/80 text-sm font-medium text-text/80 hover:border-primary/50 hover:text-primary hover:bg-primary/5 transition-all"
-                            >
-                                {cat.label}
-                            </Link>
-                        ))}
+                {!hideCategoryBrowse && (
+                    <div>
+                        <h3 className="text-sm font-bold text-text/80 mb-4">تصفح حسب التصنيف</h3>
+                        {catLoading ? (
+                            <div className="flex flex-wrap gap-2">
+                                {[1, 2, 3, 4, 5].map((i) => (
+                                    <div
+                                        key={i}
+                                        className="h-9 w-24 animate-pulse rounded-[4px] bg-border/35"
+                                    />
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="flex flex-wrap gap-2">
+                                {categories.slice(0, 12).map((cat) => (
+                                    <Link
+                                        key={cat.name}
+                                        href={`/courses?category=${encodeURIComponent(cat.name)}`}
+                                        className="px-4 py-2 rounded-[4px] bg-background border border-border/80 text-sm font-medium text-text/80 hover:border-primary/50 hover:text-primary hover:bg-primary/5 transition-all"
+                                    >
+                                        {cat.name}
+                                        <span className="mr-1 text-[10px] text-text/45">({cat.courses_count})</span>
+                                    </Link>
+                                ))}
+                                <Link
+                                    href="/courses"
+                                    className="px-4 py-2 rounded-[4px] border border-dashed border-border/90 text-sm font-semibold text-primary/90 hover:bg-primary/5 transition-all"
+                                >
+                                    الكل →
+                                </Link>
+                            </div>
+                        )}
                     </div>
-                </div>
+                )}
             </Container>
         </Section>
     );

@@ -1,8 +1,9 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { usePlayer } from "./PlayerContext";
+import { readLessonNotes, writeLessonNotes } from "@/lib/player/lessonNotesStorage";
 import { useCourseData } from "@/lib/hooks/useCoursePlayer";
 import { useParams } from "next/navigation";
 import { Link as LinkIcon, FileDown, Loader2 } from "lucide-react";
@@ -87,6 +88,43 @@ function LessonResourcesList({ resources }: { resources: Array<{ id: number; tit
     );
 }
 
+function LessonNotesEditor({ slug, lessonId }: { slug: string; lessonId: number | null }) {
+    const [text, setText] = useState("");
+    const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => {
+        if (lessonId == null) return;
+        setText(readLessonNotes(slug, lessonId));
+    }, [slug, lessonId]);
+
+    const handleChange = (v: string) => {
+        setText(v);
+        if (lessonId == null) return;
+        if (saveTimer.current) clearTimeout(saveTimer.current);
+        saveTimer.current = setTimeout(() => {
+            writeLessonNotes(slug, lessonId, v);
+        }, 450);
+    };
+
+    if (lessonId == null) {
+        return <p className="text-text/50 text-sm">اختر درساً لكتابة الملاحظات.</p>;
+    }
+
+    return (
+        <div className="space-y-2">
+            <textarea
+                value={text}
+                onChange={(e) => handleChange(e.target.value)}
+                className="w-full min-h-[180px] rounded-[4px] border border-border/80 bg-background px-4 py-3 text-sm text-text focus:outline-none focus:border-primary resize-y leading-relaxed"
+                placeholder="اكتب ملاحظاتك لهذا الدرس… تُحفظ محلياً على هذا الجهاز فقط."
+                dir="rtl"
+                aria-label="ملاحظات الدرس"
+            />
+            <p className="text-[11px] text-text/45">تُحفظ تلقائياً في المتصفح — خاصة بهذا الجهاز.</p>
+        </div>
+    );
+}
+
 export function LessonTabs() {
     const [activeTab, setActiveTab] = useState(tabs[0].id);
     const { currentLessonId } = usePlayer();
@@ -142,8 +180,9 @@ export function LessonTabs() {
                             </div>
                         )}
                         {activeTab === "notes" && (
-                            <div className="text-text/60 text-sm p-6 bg-white border border-border/40 rounded-[4px]">
-                                لا توجد ملاحظات مسجلة بعد. أضف ملاحظاتك هنا للرجوع لها لاحقاً.
+                            <div className="p-6 bg-white border border-border/40 rounded-[4px]">
+                                <h3 className="text-lg font-bold text-text mb-4">ملاحظاتك</h3>
+                                <LessonNotesEditor slug={slug} lessonId={currentLessonId} />
                             </div>
                         )}
                         {activeTab === "resources" && (

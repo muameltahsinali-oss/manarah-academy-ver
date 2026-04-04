@@ -5,19 +5,60 @@ import { ArrowLeft, LayoutDashboard, LogOut, Menu, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { usePathname, useRouter } from "next/navigation";
 
-const navLinks = [
-    { name: "الرئيسية", href: "/" },
-    { name: "الدورات", href: "/courses" },
-    { name: "كيف يعمل", href: "/#how-it-works" },
-    { name: "كن مدرّباً", href: "/instructor-info" },
-];
+export type HeaderVariant = "public" | "app" | "admin" | "instructor";
 
-export function Header() {
+type HeaderLink = { name: string; href: string };
+
+const linksByVariant: Record<HeaderVariant, HeaderLink[]> = {
+    // Guest
+    public: [
+        { name: "الرئيسية", href: "/" },
+        { name: "الدورات", href: "/courses" },
+        { name: "التسجيل", href: "/register" },
+        { name: "من نحن", href: "/about" },
+        { name: "كن مدرّباً", href: "/instructor-info" },
+    ],
+    // Student
+    app: [
+        { name: "الرئيسية", href: "/" },
+        { name: "تعلمي", href: "/dashboard/courses" },
+        { name: "المسارات", href: "/dashboard/learning-paths" },
+        { name: "الإشعارات", href: "/dashboard/notifications" },
+    ],
+    admin: [
+        { name: "لوحة الإدارة", href: "/admin/dashboard" },
+        { name: "المستخدمون", href: "/admin/users" },
+        { name: "الدورات", href: "/admin/courses" },
+        { name: "التحليلات", href: "/admin/analytics" },
+    ],
+    // Instructor
+    instructor: [
+        { name: "لوحة التحكم", href: "/instructor/dashboard" },
+        { name: "الدورات", href: "/instructor/courses" },
+        { name: "الطلاب", href: "/instructor/students" },
+        { name: "التحليلات", href: "/instructor/analytics" },
+    ],
+};
+
+function isActivePath(pathname: string, href: string) {
+    if (href === "/") return pathname === "/";
+    if (href.includes("#")) {
+        const base = href.split("#")[0] || "/";
+        return pathname === base;
+    }
+    return pathname === href || pathname.startsWith(`${href}/`) || pathname.startsWith(href);
+}
+
+type HeaderProps = { variant?: HeaderVariant | "auto" };
+
+export function Header({ variant = "auto" }: HeaderProps) {
     const [hoveredPath, setHoveredPath] = useState<string | null>(null);
     const [mounted, setMounted] = useState(false);
-    const [mobileOpen, setMobileOpen] = useState(false);
-    const { user, logout, isLoading, isAuthenticated } = useAuth();
+    const { user, logout, isSessionPending, isAuthenticated } = useAuth();
+    const pathname = usePathname();
+    const router = useRouter();
 
     // Avoid hydration mismatch: auth state depends on cookie (client-only), so render
     // a consistent placeholder until after mount, then show real auth UI.
@@ -32,83 +73,118 @@ export function Header() {
         return "/dashboard";
     };
 
+    const effectiveVariant: HeaderVariant =
+        variant !== "auto"
+            ? variant
+            : isAuthenticated
+              ? user?.role === "admin"
+                  ? "admin"
+                  : user?.role === "instructor"
+                    ? "instructor"
+                    : "app"
+              : "public";
+
+    const navLinks = linksByVariant[effectiveVariant];
+
+    const handleNavClick = (href: string) => (e: React.MouseEvent) => {
+        if (!href.includes("#")) return;
+        const [basePath, hash] = href.split("#");
+        const targetId = hash || "";
+        if (pathname === (basePath || "/")) {
+            const el = document.getElementById(targetId);
+            if (el) {
+                e.preventDefault();
+                el.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+        } else {
+            e.preventDefault();
+            router.push(href);
+        }
+    };
+
     return (
-        <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md">
+        <header className="hidden md:block sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md">
             <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-8">
                 <Link href="/" className="flex items-center gap-2">
                     <span className="text-xl font-bold tracking-tight">منارة اكاديمي</span>
                     <span className="h-2 w-2 bg-accent rounded-full" />
                 </Link>
 
-                <nav className="hidden lg:flex items-center gap-6 text-sm font-medium">
+                <nav
+                    className="hidden md:flex items-center gap-1 rounded-full border border-border/70 bg-background/60 p-1 shadow-sm"
+                    aria-label="التنقل العلوي"
+                >
                     {navLinks.map((link) => (
+                        (() => {
+                            const active = isActivePath(pathname, link.href);
+                            return (
                         <Link
                             key={link.href}
                             href={link.href}
+                            onClick={handleNavClick(link.href)}
                             onMouseEnter={() => setHoveredPath(link.href)}
                             onMouseLeave={() => setHoveredPath(null)}
-                            className="relative px-4 py-2 transition-colors hover:text-primary"
+                            aria-current={active ? "page" : undefined}
+                            className={[
+                                "relative rounded-full px-3 py-2 text-sm font-semibold transition-all",
+                                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                                active ? "text-primary" : "text-text/70 hover:text-text",
+                            ].join(" ")}
                         >
-                            <span className="relative z-10">{link.name}</span>
-                            {hoveredPath === link.href && (
-                                <motion.div
-                                    layoutId="header-underline"
-                                    className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-t-sm"
+                            {(active || hoveredPath === link.href) && (
+                                <motion.span
+                                    layoutId="header-pill"
+                                    className="absolute inset-0 -z-10 rounded-full bg-primary/10"
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}
                                     exit={{ opacity: 0 }}
-                                    transition={{ duration: 0.2, ease: "easeOut" }}
+                                    transition={{ duration: 0.18, ease: "easeOut" }}
                                 />
                             )}
+                            <span className="relative z-10 whitespace-nowrap">{link.name}</span>
                         </Link>
+                            );
+                        })()
                     ))}
                 </nav>
 
                 <div className="flex items-center gap-3 min-w-[120px] justify-end">
-                    {/* Hamburger hidden: mobile uses bottom nav; desktop uses top nav */}
-                    <button
-                        type="button"
-                        onClick={() => setMobileOpen((o) => !o)}
-                        className="hidden h-9 w-9 items-center justify-center rounded border border-border/80 hover:bg-border/20 transition-colors"
-                        aria-label={mobileOpen ? "إغلاق القائمة" : "فتح القائمة"}
-                    >
-                        {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-                    </button>
                     {!mounted ? (
                         <span className="h-9 w-9 rounded border border-border/80 bg-border/20 animate-pulse" aria-hidden />
-                    ) : !isLoading && isAuthenticated ? (
+                    ) : !isSessionPending && isAuthenticated ? (
                         <div className="flex items-center gap-3">
                             <Link
                                 href={getDashboardLink()}
-                                className="hidden sm:flex items-center gap-2 h-9 px-4 text-xs font-bold rounded border border-border/80 hover:bg-black/5 hover:border-primary/30 transition-colors"
+                                className="flex items-center gap-2 h-9 px-4 text-xs font-bold rounded-full border border-border/80 bg-background hover:bg-black/5 hover:border-primary/30 transition-colors shadow-sm"
+                                aria-label="لوحة التحكم"
                             >
                                 <LayoutDashboard className="w-3.5 h-3.5" />
-                                لوحة التحكم
+                                <span className="hidden lg:inline">لوحة التحكم</span>
                             </Link>
                             <button
                                 onClick={() => logout()}
-                                className="h-9 w-9 flex items-center justify-center rounded border border-border/80 text-text/60 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition-all"
-                                title="تسجيل الخروج"
+                                className="h-9 w-9 flex items-center justify-center rounded-full border border-border/80 bg-background text-text/60 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-200 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                                aria-label="تسجيل الخروج"
                             >
                                 <LogOut className="w-4 h-4" />
                             </button>
                         </div>
                     ) : (
                         <div className="flex items-center gap-3">
-                            {!isLoading && (
+                            {!isSessionPending && (
                                 <>
                                     <Link
                                         href="/login"
-                                        className="text-sm font-medium transition-colors hover:text-primary hidden sm:block px-2"
+                                        className="text-sm font-semibold text-text/70 transition-colors hover:text-text px-3 py-2 rounded-full hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                                     >
                                         تسجيل الدخول
                                     </Link>
                                     <Link
                                         href="/register"
-                                        className="group flex h-9 items-center justify-center gap-2 rounded bg-primary px-4 text-sm font-medium text-white transition-all hover:bg-primary/90 shadow-sm hover:shadow-primary/20 hover:-translate-y-0.5 transition-transform"
+                                        className="group flex h-9 items-center justify-center gap-2 rounded-full bg-primary px-4 text-sm font-bold text-white transition-all hover:bg-primary/90 shadow-sm hover:shadow-primary/20 hover:-translate-y-0.5 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                                     >
                                         ابدأ التعلم
-                                        <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+                                        <ArrowLeft className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                                     </Link>
                                 </>
                             )}
@@ -116,31 +192,6 @@ export function Header() {
                     )}
                 </div>
             </div>
-
-            <AnimatePresence>
-                {mobileOpen && (
-                    <motion.nav
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="lg:hidden border-t border-border bg-background overflow-hidden"
-                    >
-                        <div className="container mx-auto px-4 md:px-8 py-4 flex flex-col gap-2">
-                            {navLinks.map((link) => (
-                                <Link
-                                    key={link.href}
-                                    href={link.href}
-                                    onClick={() => setMobileOpen(false)}
-                                    className="py-3 px-4 rounded-[4px] font-medium hover:bg-primary/10 hover:text-primary transition-colors"
-                                >
-                                    {link.name}
-                                </Link>
-                            ))}
-                        </div>
-                    </motion.nav>
-                )}
-            </AnimatePresence>
         </header>
     );
 }

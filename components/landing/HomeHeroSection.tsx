@@ -9,7 +9,7 @@ import { useStudentDashboard } from "@/lib/hooks/useDashboard";
 import { ArrowLeft, BookOpen, Loader2, PlayCircle } from "lucide-react";
 
 export function HomeHeroSection() {
-    const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
+    const { user, isAuthenticated, isSessionPending: isAuthLoading } = useAuth();
     const { data: dashboardRes } = useStudentDashboard(!!isAuthenticated);
     const lastCourseSlug = dashboardRes?.data?.last_course_slug;
 

@@ -3,11 +3,14 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useStudentDashboard } from "@/lib/hooks/useDashboard";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft, Zap } from "lucide-react";
+import { useLearningXp } from "@/lib/engagement/useLearningXp";
+import { encouragementForProgress, PROGRESS_MILESTONES } from "@/lib/engagement/progressMessaging";
 
 export function LearningPathWidget() {
     const { data: res, isLoading } = useStudentDashboard();
     const stats = res?.data;
+    const learningXp = useLearningXp();
 
     // Until real learning paths API exists, approximate path progress from dashboard stats
     const activeCourses = stats?.active_courses ?? 0;
@@ -37,8 +40,9 @@ export function LearningPathWidget() {
             transition={{ duration: 0.4, ease: "easeOut" }}
             className="w-full bg-white border border-border/80 rounded-[4px] p-4 md:p-6 lg:p-7 flex flex-col md:flex-row items-center gap-4 md:gap-6"
         >
-            {/* Progress ring */}
-            <div className="relative w-28 h-28 shrink-0">
+            {/* Progress ring + XP */}
+            <div className="flex flex-col items-center gap-3 shrink-0">
+            <div className="relative w-28 h-28">
                 <svg className="w-full h-full -rotate-90">
                     <circle
                         cx="56"
@@ -69,16 +73,41 @@ export function LearningPathWidget() {
                     <span className="text-2xl font-bold text-text">{displayPercent}%</span>
                 </div>
             </div>
+            <div className="flex w-full max-w-[11rem] justify-between gap-0.5 px-0.5">
+                {PROGRESS_MILESTONES.map((m) => (
+                    <span
+                        key={m}
+                        className={`text-[9px] font-mono tabular-nums ${
+                            displayPercent >= m ? "font-semibold text-primary/85" : "text-text/30"
+                        }`}
+                    >
+                        {m}%
+                    </span>
+                ))}
+            </div>
+            <div className="flex items-center gap-2 rounded-xl border border-amber-500/15 bg-amber-500/[0.06] px-3 py-2 text-xs text-amber-950/85">
+                <Zap className="h-3.5 w-3.5 shrink-0 opacity-80" strokeWidth={2} />
+                <span className="font-bold tabular-nums">{learningXp}</span>
+                <span className="text-[10px] text-text/50">نقاط نشاط</span>
+            </div>
+            </div>
 
             {/* Text & actions */}
             <div className="flex-1 flex flex-col gap-2 text-right md:text-right" dir="rtl">
                 <h2 className="text-lg font-bold tracking-tight text-text">
                     تقدّمك في الرحلة الهندسية
                 </h2>
-                <p className="text-sm text-text/60">
-                    {totalCourses > 0
-                        ? `أكملت ${completedCourses} من ${totalCourses} دورة في مسارك الحالي. استمر في التحرك للأمام حتى تصل إلى 100٪.`
-                        : "ابدأ مسارك الآن عبر اختيار أول دورة في الكتالوج."}
+                <p className="text-sm text-text/65 leading-relaxed">
+                    {totalCourses > 0 ? (
+                        <>
+                            <span className="block text-text/80 font-medium mb-1">{encouragementForProgress(displayPercent)}</span>
+                            <span className="text-text/55">
+                                أكملت {completedCourses} من {totalCourses} دورة — واصل بنفس الزخم.
+                            </span>
+                        </>
+                    ) : (
+                        "ابدأ مسارك الآن عبر اختيار أول دورة في الكتالوج."
+                    )}
                 </p>
 
                 <div className="mt-3 flex flex-wrap gap-3 justify-start md:justify-end">

@@ -5,9 +5,11 @@ import { useParams, useRouter } from "next/navigation";
 import { PlayerHeader } from "@/components/player/PlayerHeader";
 import { VideoContainer } from "@/components/player/VideoContainer";
 import { LessonTabs } from "@/components/player/LessonTabs";
+import { PlayerNextLessonDock } from "@/components/player/PlayerNextLessonDock";
 import { usePlayer } from "@/components/player/PlayerContext";
-import { useCourseData } from "@/lib/hooks/useCoursePlayer";
-import { Loader2, Lock } from "lucide-react";
+import { useLessonPage } from "@/lib/hooks/useLessonPage";
+import { LessonPageLoading, LessonPageLocked, LessonPageNotFound } from "@/components/player/LessonPageShell";
+import { lessonHref, type LessonLike } from "@/lib/player/lessonRoutes";
 
 export default function VideoLessonPage() {
     const params = useParams();
@@ -17,9 +19,8 @@ export default function VideoLessonPage() {
     const lessonId = Number(lessonIdParam);
 
     const { currentLessonId, setCurrentLessonId } = usePlayer();
-    const { data: res, isLoading, error } = useCourseData(slug);
+    const { isLoading, error, isEnrolled, lesson, nextLesson, canNavigateToNext } = useLessonPage(slug, lessonId);
 
-    // Ensure the current lesson in context matches the URL
     useEffect(() => {
         if (!Number.isNaN(lessonId) && currentLessonId !== lessonId) {
             setCurrentLessonId(lessonId);
@@ -27,49 +28,17 @@ export default function VideoLessonPage() {
     }, [lessonId, currentLessonId, setCurrentLessonId]);
 
     if (isLoading) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-                <Loader2 className="w-10 h-10 animate-spin text-primary" />
-                <p className="text-sm font-medium text-text/60">جاري تحميل الدورة...</p>
-            </div>
-        );
+        return <LessonPageLoading />;
     }
 
-    if (error || !res?.data?.is_enrolled) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 text-center px-4">
-                <div className="p-4 bg-primary/5 rounded-full">
-                    <Lock className="w-12 h-12 text-primary" />
-                </div>
-                <div>
-                    <h2 className="text-xl font-bold text-text mb-2">عذراً، لا يمكنك الوصول لهذه الصفحة</h2>
-                    <p className="text-sm text-text/60 max-w-md mx-auto">
-                        يجب عليك الاشتراك في الدورة أولاً لتتمكن من الوصول إلى المحتوى التعليمي.
-                    </p>
-                </div>
-                <button
-                    onClick={() => router.push(`/courses/${slug}`)}
-                    className="px-8 py-3 bg-primary text-white font-bold rounded-[4px] hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
-                >
-                    الذهاب لصفحة الدورة
-                </button>
-            </div>
-        );
+    if (error || !isEnrolled) {
+        return <LessonPageLocked slug={slug} />;
     }
-
-    const modules = res?.data?.modules || [];
-    const allLessons = modules.flatMap((m: any) => m.lessons || []);
-    const lesson = allLessons.find((l: any) => Number(l.id) === lessonId);
 
     if (!lesson) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-                <p className="text-sm font-medium text-text/60">لم يتم العثور على هذا الدرس.</p>
-            </div>
-        );
+        return <LessonPageNotFound />;
     }
 
-    // If the lesson is not a video, redirect to the appropriate page
     if (lesson.lesson_type && lesson.lesson_type !== "video") {
         if (lesson.lesson_type === "documentation") {
             router.replace(`/learn/${slug}/docs/${lesson.id}`);
@@ -81,15 +50,25 @@ export default function VideoLessonPage() {
         return null;
     }
 
-    return (
-        <div className="flex flex-col w-full pb-20">
-            <PlayerHeader />
+    const nextDockHref = nextLesson ? lessonHref(slug, nextLesson as LessonLike) : null;
+    const nextTitle = nextLesson ? (nextLesson as { title?: string }).title : null;
 
-            <div className="flex flex-col p-4 md:p-8 md:px-12 w-full max-w-6xl mx-auto gap-12">
-                <VideoContainer />
-                <LessonTabs />
+    return (
+        <>
+            <div className="flex flex-col w-full pb-28 md:pb-24">
+                <PlayerHeader />
+
+                <div className="flex flex-col p-4 md:p-8 md:px-12 w-full max-w-6xl mx-auto gap-12">
+                    <VideoContainer />
+                    <LessonTabs />
+                </div>
             </div>
-        </div>
+
+            <PlayerNextLessonDock
+                nextLessonTitle={nextTitle}
+                nextHref={nextDockHref}
+                canNavigate={!!canNavigateToNext && !!nextDockHref}
+            />
+        </>
     );
 }
-

@@ -13,8 +13,8 @@ export default function BadgesPage() {
             <div className="flex flex-col gap-8 md:gap-12 w-full max-w-6xl mx-auto py-6">
                 <motion.div {...getFadeUp(0, 0.4)}>
                     <h1 className="text-3xl font-bold tracking-tight mb-2">أوسمتي</h1>
-                    <p className="text-sm text-text/60">
-                        استعرض إنجازاتك وأوسمة التعلم. اكتسب المزيد بإكمال الدروس والدورات والانتظام.
+                    <p className="text-sm text-text/60 max-w-xl leading-relaxed">
+                        مجموعة إنجازاتك — اضغط على أي وسام لعرض التفاصيل. الأوسمة المفتوحة تظهر أولاً.
                     </p>
                 </motion.div>
 

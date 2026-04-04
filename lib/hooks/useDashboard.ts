@@ -20,21 +20,23 @@ export function useStudentCourses(enabled = true) {
 export function useStudentNotifications() {
     return useQuery({
         queryKey: ['student', 'notifications'],
-        queryFn: () => get<any>('/student/notifications'), // Placeholder for future API addition
+        queryFn: () => get<any>('/notifications', { per_page: 10 }),
     });
 }
 
-export function useInstructorDashboard() {
+export function useInstructorDashboard(enabled = true) {
     return useQuery({
         queryKey: ['instructor', 'dashboard'],
         queryFn: () => get<any>('/instructor/dashboard'),
+        enabled,
     });
 }
 
-export function useAdminDashboard() {
+export function useAdminDashboard(enabled = true) {
     return useQuery({
         queryKey: ['admin', 'dashboard'],
         queryFn: () => get<any>('/admin/dashboard'),
+        enabled,
     });
 }
 
